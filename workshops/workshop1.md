@@ -562,9 +562,9 @@ cd ../exercice1.2
 
 terraform init
 
-terraform plan
+terraform plan -var-file=terraform.tfvars
 
-terraform apply
+terraform apply -var-file=terraform.tfvars
 
 
 
@@ -584,7 +584,7 @@ terraform apply
 
 # Appliquer avec des variables en ligne
 
-terraform apply -var="environment=prod" -var="server_count=10"
+terraform apply -var-file=terraform.tfvars -var="environment=prod" -var="server_count=10"
 
 
 
@@ -1461,6 +1461,8 @@ locals {
   }
 
 }
+
+
 
 
 

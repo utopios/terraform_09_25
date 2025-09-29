@@ -15,6 +15,7 @@ variable "var-1" {
     type = string
     description = "var-1 type string"
     default = "default val of var 1"
+    sensitive = true
 }
 
 locals {

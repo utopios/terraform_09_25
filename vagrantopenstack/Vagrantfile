@@ -1,0 +1,89 @@
+# Vagrantfile — DevStack (OVN) en NAT
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/jammy64"   # Ubuntu 22.04 LTS
+  config.vm.hostname = "devstack-ovn"
+
+  # Réseau : NAT (par défaut). Pas de réseau additionnel.
+  # Pour exposer Horizon à l'hôte, on mappe un port (optionnel) :
+  # Horizon écoute sur 80 dans la VM → accessible sur http://localhost:8080
+  config.vm.network "forwarded_port", guest: 80, host: 8080, auto_correct: true
+
+  # Ressources conseillées (ajustez selon votre machine)
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "devstack-ovn-nat"
+    vb.memory = 12288
+    vb.cpus = 4
+    vb.customize ["modifyvm", :id, "--nictype1", "virtio"] # perf réseau
+    vb.customize ["modifyvm", :id, "--ioapic", "on"]
+    vb.customize ["modifyvm", :id, "--chipset", "ich9"]
+  end
+
+  # Provisionnement : installe DevStack + OVN et lance stack.sh
+  config.vm.provision "shell", inline: <<'SHELL'
+set -euo pipefail
+
+# 1) Basics
+sudo apt-get update
+sudo apt-get install -y git sudo net-tools curl jq python3-pip build-essential \
+                        iproute2 vim ca-certificates
+
+# 2) Préparer utilisateur (DevStack doit tourner en user non-root avec sudo)
+sudo usermod -aG sudo vagrant
+sudo -H -u vagrant bash -lc 'mkdir -p ~/bin ~/src'
+
+# 3) Cloner DevStack
+if [ ! -d /home/vagrant/devstack ]; then
+  sudo -H -u vagrant git clone https://opendev.org/openstack/devstack /home/vagrant/devstack
+fi
+
+# 4) Déterminer l'IP NAT (interface par défaut vers Internet, ex: 10.0.2.15)
+HOST_IP=$(ip -o -4 route get 1.1.1.1 | awk "{print \$7; exit}")
+echo "Detected HOST_IP=${HOST_IP}"
+
+# 5) Générer local.conf pour OVN (désactive q-l3/q-dhcp/q-meta)
+sudo -H -u vagrant bash -lc "cat > /home/vagrant/devstack/local.conf" <<EOF
+[[local|localrc]]
+# Mots de passe
+ADMIN_PASSWORD=devstack
+DATABASE_PASSWORD=devstack
+RABBIT_PASSWORD=devstack
+SERVICE_PASSWORD=devstack
+
+# IP hôte (NAT)
+HOST_IP=${HOST_IP}
+SERVICE_HOST=${HOST_IP}
+SERVICE_PROTOCOL=http
+
+# Plugins OVN
+enable_plugin neutron https://opendev.org/openstack/neutron
+enable_plugin networking-ovn https://opendev.org/openstack/networking-ovn
+
+# ML2/OVN
+Q_AGENT=ovn
+Q_ML2_PLUGIN_MECHANISM_DRIVERS=ovn
+Q_ML2_PLUGIN_TYPE_DRIVERS=local,flat,vlan,geneve
+Q_ENABLE_TRUNK=True
+OVN_NATIVE_DHCP=True
+OVN_L3_CREATE_PUBLIC_NETWORK=True
+
+# Services réseau (OVN natif)
+enable_service q-svc ovn-northd ovn-controller q-ovn-metadata-agent
+disable_service q-agt q-l3 q-dhcp q-meta
+
+# Services de base
+enable_service g-api g-reg
+enable_service n-api n-cond n-sch n-cpu placement-api
+enable_service c-api c-vol cinder-scheduler
+enable_service horizon
+disable_service tempest
+
+# Réseaux par défaut (facultatif) — DevStack peut créer le public net
+FLOATING_RANGE=172.24.4.0/24
+PUBLIC_NETWORK_GATEWAY=172.24.4.1
+Q_FLOATING_ALLOCATION_POOL=start=172.24.4.10,end=172.24.4.200
+EOF
+
+# 6) Lancer DevStack (stack.sh)
+sudo -H -u vagrant bash -lc "cd ~/devstack && ./stack.sh"
+SHELL
+end
