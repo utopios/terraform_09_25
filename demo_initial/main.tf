@@ -38,10 +38,10 @@ resource "null_resource" "resource3" {
   depends_on = [ null_resource.name-resource1, null_resource.resource2 ]
 
   lifecycle {
-    prevent_destroy = true
-    create_before_destroy = true
-    ignore_changes = [ null_resource.resource3.id ]
-    replace_triggered_by = [ null_resource.name-resource1 ]
+    # prevent_destroy = true
+    # create_before_destroy = true
+    # ignore_changes = [ null_resource.resource3.id ]
+    # replace_triggered_by = [ null_resource.name-resource1 ]
   }
 }
 
@@ -59,3 +59,13 @@ output "value-of-var-2" {
 output "output-local-var" {
   value = local.local-var
 }
+
+variable "list_of_strings" {
+  description = "A list of strings"
+  type        = list(string)
+  default     = ["apple", "banana", "cherry"]
+}
+output "lengths_of_strings" {
+  value = [for s in var.list_of_strings : length(s)]
+}
+
