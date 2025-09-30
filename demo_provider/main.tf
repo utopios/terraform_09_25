@@ -26,16 +26,32 @@ variable "password" {}
 variable "tenant_name" {}
 
 
-# resource "openstack_compute_instance_v2" "test_vm" {
-#   name            = "terraform-vm"
-#   flavor_name     = "m1.tiny"
-#   image_name      = "cirros-0.6.3-x86_64-disk"
-#   security_groups = ["default"]
+resource "openstack_compute_instance_v2" "test_vm" {
+  name            = "terraform-vm"
+  flavor_name     = "m1.tiny"
+  image_name      = "cirros-0.6.3-x86_64-disk"
+  security_groups = ["default"]
 
-#   network {
-#     name = "private"
-#   }
-# }
+  network {
+    name = "private"
+  }
+  provisioner "local-exec" {
+    command = "echo The vm was correctly created"
+  }
+
+  provisioner "file" {
+    source = "source_file.sh"
+    destination = "terraform_provisionner.sh"
+  }
+
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      host = ""
+      script_path = "terraform_provisionner.sh"
+    }
+  }
+}
 
 data "openstack_compute_flavor_v2" "small" {
   vcpus = 1
