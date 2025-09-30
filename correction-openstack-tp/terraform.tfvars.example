@@ -1,0 +1,11 @@
+# Copier ce fichier en terraform.tfvars et remplir avec vos valeurs
+
+environment             = "dev"
+project_name            = "multi-tier-app"
+openstack_user_name     = "votre-username"
+openstack_password      = "votre-password"
+openstack_auth_url      = "https://your-openstack:5000/v3"
+openstack_region        = "RegionOne"
+openstack_tenant_name   = "votre-projet"
+image_name              = "Ubuntu-20.04"
+external_network_name   = "public"
