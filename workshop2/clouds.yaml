@@ -1,0 +1,12 @@
+clouds:
+  openstack:
+    auth:
+      auth_url: http://127.0.0.1/identity
+      username: "admin"
+      password: "devstack"
+      project_id: b6d8afb1f5fd44eabf63d3bba62391de
+      project_name: "admin"
+      user_domain_name: "Default"
+    region_name: "RegionOne"
+    interface: "public"
+    identity_api_version: 3
