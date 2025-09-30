@@ -72,3 +72,7 @@ output "flavor-small" {
   value       = data.openstack_compute_flavor_v2.small.name
 }
 
+import {
+  to = openstack_compute_instance_v2.test_vm
+  id = ""
+}
